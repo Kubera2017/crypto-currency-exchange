@@ -1,7 +1,6 @@
 import { state } from '../shared/state';
 
 import { Document, Schema, Model, model } from 'mongoose';
-import { rejects } from 'assert';
 
 interface Rate {
     value: number;
@@ -84,8 +83,8 @@ export class ExchangeAutomaton {
 
     public init() {
         return new Promise ((resolve, reject) => {
+            console.log('Creating a service...');
             exchangeAutomaton.create(state).then((result: ExchangeAutomatonModel) => {
-                console.log('Creating a service...');
                 this._id = result._id;
                 this.currencyName = result.currencyName;
                 this.rate = result.rate;
