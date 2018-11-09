@@ -2,6 +2,8 @@ import { state } from '../shared/state';
 
 import { Document, Schema, Model, model } from 'mongoose';
 
+import { BTCAddress } from './BTCAddress';
+
 interface Rate {
     value: number;
     timestamp: number;
@@ -17,10 +19,22 @@ interface ExchangeAutomatonInterface {
     available: number;
 }
 
-interface Payment {
+export interface PaymentRequest {
+    amount: number;
+	currency: string;
+    to: string;
+}
+
+export class Payment {
 	amount: number;
 	currency: string;
-	to: string; // "адрес btc"
+    to: BTCAddress;
+
+    constructor(request: PaymentRequest) {
+        this.amount = request.amount;
+        this.currency = request.currency;
+        this.to = new BTCAddress(request.to);
+    }
 }
 
 interface ExchangeAutomatonModel extends ExchangeAutomatonInterface, Document {
@@ -81,86 +95,36 @@ export class ExchangeAutomaton {
     }
 
     public async withdraw(payment: Payment) {
-        if (payment.currency === 'btc') {
+        let demand = payment.amount;
+        if (payment.currency === 'usd') {
+            demand = payment.amount / this.state.rate.value;
+        }
+        console.log(demand);
+        console.log(payment);
 
-            if (payment.amount >= this.state.payment.minAmount &&
-                payment.amount <= this.state.payment.maxAmount &&
-                payment.amount <= this.state.available) {
-                    const newState = await exchangeAutomaton.findByIdAndUpdate(this.state._id, {
-                        $set: {'available': (this.state.available - payment.amount)}
-                    }, {
-                        new: true
-                    });
-                    this.state = newState;
-                    return this.getState();
-            } else {
 
-            }
+        const errors = [];
+        if (demand < this.state.payment.minAmount) {
+            errors.push({message: 'minAmount error'});
+        }
+        if (demand > this.state.payment.maxAmount) {
+            errors.push({message: 'maxAmount error'});
+        }
+        if (demand > this.state.available) {
+            errors.push({message: 'available error'});
+        }
 
-        } else if (payment.currency === 'usd') {
-
+        if (errors.length !== 0) {
+            return {status: 'error', errors: errors};
         } else {
-            let err = new Error('Unknown currency.');
-            throw err;
+
+            const newState = await exchangeAutomaton.findByIdAndUpdate(this.state._id, {
+                    $set: {'available': (this.state.available - demand)}
+            }, { new: true });
+
+            this.state = newState;
+
+            return {status: 'ok'};
         }
     }
-
-
-    //     });
-    // }
-
-
-    // public setMinAmount (amount: number) {
-    //     return new Promise ((resolve, reject) => {
-    //         exchangeAutomaton.findByIdAndUpdate(this._id,
-    //             {
-    //                 $set: {'payment.minAmount': amount}
-    //             }, {
-    //                 new: true
-    //             }).then((result: ExchangeAutomatonModel) => {
-    //             this.payment.minAmount = amount;
-    //             resolve(result);
-    //         }).catch(
-    //             err => {
-    //                 reject(err);
-    //             }
-    //         );
-    //     });
-    // }
-
-    // public setMaxAmount (amount: number) {
-    //     return new Promise ((resolve, reject) => {
-    //         exchangeAutomaton.findByIdAndUpdate(this._id,
-    //             {
-    //                 $set: {'payment.maxAmount': amount}
-    //             }, {
-    //                 new: true
-    //             }).then((result: ExchangeAutomatonModel) => {
-    //             this.payment.maxAmount = amount;
-    //             resolve(result);
-    //         }).catch(
-    //             err => {
-    //                 reject(err);
-    //             }
-    //         );
-    //     });
-    // }
-
-    // public setRate (rate: Rate) {
-    //     return new Promise ((resolve, reject) => {
-    //         exchangeAutomaton.findByIdAndUpdate(this._id,
-    //             {
-    //                 $set: {'rate': rate}
-    //             }, {
-    //                 new: true
-    //             }).then((result: ExchangeAutomatonModel) => {
-    //             this.rate = rate;
-    //             resolve(result);
-    //         }).catch(
-    //             err => {
-    //                 reject(err);
-    //             }
-    //         );
-    //     });
-    // }
 }
