@@ -5,11 +5,12 @@ import * as bodyParser from 'body-parser';
 
 import { ExchangeAutomaton } from './classes/ExchangeAutomaton';
 
-import { AutomatonController } from './controllers/automaton.controller';
+import { AutomatonRouter } from './router';
 
 
 
-let uri = 'mongodb://localhost:27017/cryptoExchange';
+const uri = 'mongodb://localhost:27017/cryptoExchange';
+const port = 3000;
 
 mongoose.connect(uri, err => {
   if (err) {
@@ -25,22 +26,16 @@ mongoose.connect(uri, err => {
             console.log(result);
             const app: express.Application = express();
             app.use(bodyParser.json());
-            const port = 3000;
-
 
             app.use((req, res, next) => {
                 res.locals.exchangeAutomaton = exchangeAutomaton;
                 next();
             });
 
-            app.use('/', AutomatonController);
+            app.use('/', AutomatonRouter);
             app.listen(port, () => {
-                // Success callback
                 console.log(`Listening at http://localhost:${port}/`);
-                });
-            // exchangeAutomaton.setMinAmount(300).then(res => {
-            //     console.log(res);
-            // });
+            });
         }
     );
 

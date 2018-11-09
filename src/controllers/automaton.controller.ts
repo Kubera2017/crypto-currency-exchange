@@ -1,24 +1,19 @@
-import { Router, Request, Response } from 'express';
 
-const router: Router = Router();
 
 import { ExchangeAutomaton } from '../classes/ExchangeAutomaton';
 
+import { Request, Response } from 'express';
 
-router.get('/', (req: Request, res: Response) => {
+export async function getState(req: Request, res: Response) {
     const automaton: ExchangeAutomaton = res.locals.exchangeAutomaton;
-    res.end(automaton.available.toString());
-});
+    res.json(automaton.getState());
+}
 
-router.post('/set-min-amount', (req: Request, res: Response) => {
+export async function setMinAmount(req: Request, res: Response) {
     const automaton: ExchangeAutomaton = res.locals.exchangeAutomaton;
 
     const minAmount: number = req.body.amount;
-    automaton.setMinAmount(minAmount)
-    .then(() => {
-        res.end(automaton.available.toString());
-    });
-});
-
-
-export const AutomatonController: Router = router;
+    // const response = await automaton.setMinAmount(minAmount);
+    // res.end(response);
+    res.end();
+}

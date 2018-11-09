@@ -7,12 +7,6 @@ interface Rate {
     timestamp: number;
 }
 
-interface Payment {
-	amount: number;
-	currency: string;
-	to: string; // "адрес btc"
-}
-
 interface ExchangeAutomatonInterface {
     currencyName: string;
     payment: {
@@ -21,6 +15,12 @@ interface ExchangeAutomatonInterface {
     };
     rate: Rate;
     available: number;
+}
+
+interface Payment {
+	amount: number;
+	currency: string;
+	to: string; // "адрес btc"
 }
 
 interface ExchangeAutomatonModel extends ExchangeAutomatonInterface, Document {
@@ -53,7 +53,7 @@ const exchangeAutomatonSchema = new Schema({
     },
     available: {
         type: Number,
-        default: 0
+        required: true
     }
 
 }, {
@@ -66,121 +66,101 @@ const exchangeAutomaton: Model<ExchangeAutomatonModel> = model<ExchangeAutomaton
 
 export class ExchangeAutomaton {
 
-    private _id: string;
-
-    private currencyName: string;
-
-    private payment: {
-		minAmount: number,
-		maxAmount: number
-    };
-
-    private rate: Rate;
-
-    public available: number;
+    private state: ExchangeAutomatonModel;
 
     constructor() { }
 
-    public init() {
-        return new Promise ((resolve, reject) => {
-            console.log('Creating a service...');
-            exchangeAutomaton.create(state).then((result: ExchangeAutomatonModel) => {
-                this._id = result._id;
-                this.currencyName = result.currencyName;
-                this.rate = result.rate;
-                this.payment = result.payment;
-                this.available = result.available;
-                resolve(result);
-            }).catch(
-                err => {
-                   reject(err);
-                }
-            );
-        });
+    public async init() {
+        const newState = await exchangeAutomaton.create(state);
+        this.state = newState;
+        return this.getState();
     }
 
-    public withdaw(payment: Payment) {
-        return new Promise ((resolve, reject) => {
-            if (payment.currency === 'btc') {
-                if (payment.amount >= this.payment.minAmount &&
-                    payment.amount <= this.payment.maxAmount &&
-                    payment.amount <= this.available) {
+    public getState() {
+        return this.state;
+    }
 
-                        exchangeAutomaton.findByIdAndUpdate(this._id,
-                            {
-                                $set: {'available': (this.available - payment.amount)}
-                            }, {
-                                new: true
-                            }).then((result: ExchangeAutomatonModel) => {
-                            this.available = result.available;
-                            resolve(result);
-                        }).catch(
-                            err => {
-                                reject(err);
-                            }
-                        );
-                }
-            } else if (payment.currency === 'usd') {
+    public async withdraw(payment: Payment) {
+        if (payment.currency === 'btc') {
 
+            if (payment.amount >= this.state.payment.minAmount &&
+                payment.amount <= this.state.payment.maxAmount &&
+                payment.amount <= this.state.available) {
+                    const newState = await exchangeAutomaton.findByIdAndUpdate(this.state._id, {
+                        $set: {'available': (this.state.available - payment.amount)}
+                    }, {
+                        new: true
+                    });
+                    this.state = newState;
+                    return this.getState();
             } else {
-                let err = new Error('Unknown currency.');
-                reject(err);
+
             }
-        });
+
+        } else if (payment.currency === 'usd') {
+
+        } else {
+            let err = new Error('Unknown currency.');
+            throw err;
+        }
     }
 
 
-    public setMinAmount (amount: number) {
-        return new Promise ((resolve, reject) => {
-            exchangeAutomaton.findByIdAndUpdate(this._id,
-                {
-                    $set: {'payment.minAmount': amount}
-                }, {
-                    new: true
-                }).then((result: ExchangeAutomatonModel) => {
-                this.payment.minAmount = amount;
-                resolve(result);
-            }).catch(
-                err => {
-                    reject(err);
-                }
-            );
-        });
-    }
+    //     });
+    // }
 
-    public setMaxAmount (amount: number) {
-        return new Promise ((resolve, reject) => {
-            exchangeAutomaton.findByIdAndUpdate(this._id,
-                {
-                    $set: {'payment.maxAmount': amount}
-                }, {
-                    new: true
-                }).then((result: ExchangeAutomatonModel) => {
-                this.payment.maxAmount = amount;
-                resolve(result);
-            }).catch(
-                err => {
-                    reject(err);
-                }
-            );
-        });
-    }
 
-    public setRate (rate: Rate) {
-        return new Promise ((resolve, reject) => {
-            exchangeAutomaton.findByIdAndUpdate(this._id,
-                {
-                    $set: {'rate': rate}
-                }, {
-                    new: true
-                }).then((result: ExchangeAutomatonModel) => {
-                this.rate = rate;
-                resolve(result);
-            }).catch(
-                err => {
-                    reject(err);
-                }
-            );
-        });
-    }
+    // public setMinAmount (amount: number) {
+    //     return new Promise ((resolve, reject) => {
+    //         exchangeAutomaton.findByIdAndUpdate(this._id,
+    //             {
+    //                 $set: {'payment.minAmount': amount}
+    //             }, {
+    //                 new: true
+    //             }).then((result: ExchangeAutomatonModel) => {
+    //             this.payment.minAmount = amount;
+    //             resolve(result);
+    //         }).catch(
+    //             err => {
+    //                 reject(err);
+    //             }
+    //         );
+    //     });
+    // }
+
+    // public setMaxAmount (amount: number) {
+    //     return new Promise ((resolve, reject) => {
+    //         exchangeAutomaton.findByIdAndUpdate(this._id,
+    //             {
+    //                 $set: {'payment.maxAmount': amount}
+    //             }, {
+    //                 new: true
+    //             }).then((result: ExchangeAutomatonModel) => {
+    //             this.payment.maxAmount = amount;
+    //             resolve(result);
+    //         }).catch(
+    //             err => {
+    //                 reject(err);
+    //             }
+    //         );
+    //     });
+    // }
+
+    // public setRate (rate: Rate) {
+    //     return new Promise ((resolve, reject) => {
+    //         exchangeAutomaton.findByIdAndUpdate(this._id,
+    //             {
+    //                 $set: {'rate': rate}
+    //             }, {
+    //                 new: true
+    //             }).then((result: ExchangeAutomatonModel) => {
+    //             this.rate = rate;
+    //             resolve(result);
+    //         }).catch(
+    //             err => {
+    //                 reject(err);
+    //             }
+    //         );
+    //     });
+    // }
 }
