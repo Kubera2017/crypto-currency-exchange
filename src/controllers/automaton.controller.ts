@@ -11,7 +11,7 @@ export async function getState(req: Request, res: Response) {
     } catch (err) {
         console.log(err);
         res.status(500);
-        res.end(err.message);
+        res.end(err);
     }
 
 }
@@ -25,8 +25,8 @@ export async function withdraw(req: Request, res: Response) {
         res.json(result);
     } catch (err) {
         console.log(err);
-        res.status(500);
-        res.end(err.message);
+        res.status(400);
+        res.json(err);
     }
 }
 

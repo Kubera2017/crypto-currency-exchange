@@ -115,7 +115,7 @@ export class ExchangeAutomaton {
         }
 
         if (errors.length !== 0) {
-            return {status: 'error', errors: errors};
+            throw {status: 'error', errors: errors};
         } else {
 
             const newState = await exchangeAutomaton.findByIdAndUpdate(this.state._id, {
