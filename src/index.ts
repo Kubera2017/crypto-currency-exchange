@@ -10,10 +10,9 @@ import { AutomatonRouter } from './router';
 const uri = 'mongodb://localhost:27017/cryptoExchange';
 const port = 3000;
 
-async function init(dbErr) {
-    if (dbErr) {
-        throw dbErr;
-    }
+async function init() {
+
+    await mongoose.connect(uri);
     console.log('Mongo Connected!');
 
     const exchangeAutomaton = new ExchangeAutomaton;
@@ -36,4 +35,6 @@ async function init(dbErr) {
     console.log(`Listening at http://localhost:${port}/`);
 }
 
-mongoose.connect(uri, init);
+init().catch(error => console.error(error.stack));
+
+
